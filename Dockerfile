@@ -16,22 +16,27 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -
     rm miniconda.sh
 ENV PATH="/opt/conda/bin:$PATH"
 
-# Create conda env and install dependencies
+# Copy requirements
 COPY requirements.txt /app/requirements.txt
+
+# Create conda env and install requirements
 RUN conda create -n contrastive_rl python=3.9 -y && \
-    echo "conda activate contrastive_rl" >> ~/.bashrc && \
-    /bin/bash -c "source ~/.bashrc && conda activate contrastive_rl && pip install -r /app/requirements.txt --no-deps"
+    /opt/conda/envs/contrastive_rl/bin/pip install -r /app/requirements.txt --no-deps
 
 # Install extra pip packages in strict versions
-RUN /bin/bash -c "source ~/.bashrc && conda activate contrastive_rl && \
-    pip install dm-acme[jax,tf] \
-    && pip install jax==0.4.10 jaxlib==0.4.10 \
-    && pip install ml_dtypes==0.2.0 \
-    && pip install dm-haiku==0.0.9 \
-    && pip install gymnasium-robotics \
-    && pip uninstall -y scipy && pip install scipy==1.12 \
-    && pip install torch==2.1.2 scikit-learn pandas \
-    && pip install 'cython<3'"
+RUN /opt/conda/envs/contrastive_rl/bin/pip install dm-acme[jax,tf] && \
+    /opt/conda/envs/contrastive_rl/bin/pip install jax==0.4.10 jaxlib==0.4.10 && \
+    /opt/conda/envs/contrastive_rl/bin/pip install ml_dtypes==0.2.0 && \
+    /opt/conda/envs/contrastive_rl/bin/pip install dm-haiku==0.0.9 && \
+    /opt/conda/envs/contrastive_rl/bin/pip install gymnasium-robotics && \
+    /opt/conda/envs/contrastive_rl/bin/pip uninstall -y scipy && \
+    /opt/conda/envs/contrastive_rl/bin/pip install scipy==1.12 && \
+    /opt/conda/envs/contrastive_rl/bin/pip install torch==2.1.2 scikit-learn pandas && \
+    /opt/conda/envs/contrastive_rl/bin/pip install 'cython<3'
+
+# Set up default environment when shell starts
+RUN echo "source activate contrastive_rl" > ~/.bashrc
+ENV PATH="/opt/conda/envs/contrastive_rl/bin:$PATH"
 
 # Copy repo files
 WORKDIR /app
