@@ -92,17 +92,20 @@ def get_program(params):
       use_image_obs=config.use_image_obs,
       hidden_layer_sizes=config.hidden_layer_sizes)
 
-
-  env_factory_fixed_goals = lambda seed: TrajectoryLoggerWrapper(
-    make_env_fn(
+  if fix_goals:
+    env_factory_fixed_goals = lambda seed: TrajectoryLoggerWrapper(
+      make_env_fn(
         env_name,
         config.start_index,
         config.end_index,
         seed,
         fixed_goal_dict[env_name]
-    )[0],
-    log_path=f"traj_{env_name}_seed{seed}_fixed.csv"
-  )
+      )[0],
+      log_path=f"traj_{env_name}_seed{seed}_fixed.csv"
+    )
+  else:
+    env_factory_fixed_goals = env_factory
+
   env_factory_no_extra_fixed_goals = env_factory_fixed_goals
     
   agent = contrastive.DistributedContrastive(
