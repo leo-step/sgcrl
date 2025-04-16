@@ -60,11 +60,25 @@ def get_program(params):
   else:
     fixed_start_end = None
     
-  env_factory = lambda seed: contrastive_utils.make_environment(  # pylint: disable=g-long-lambda
-      env_name, config.start_index, config.end_index, seed, fixed_start_end = fixed_start_end)
 
-  env_factory_no_extra = lambda seed: env_factory(seed)[0]  # Remove obs_dim.
-    
+  from plotting import TrajectoryLoggerWrapper
+
+  # alias the original factory function
+  make_env_fn = contrastive_utils.make_environment
+
+# wrap the *env* in the logger (no [0] on the wrapper!)
+  env_factory = lambda seed: TrajectoryLoggerWrapper(
+      make_env_fn(
+        env_name,
+        config.start_index,
+        config.end_index,
+        seed,
+        fixed_start_end
+      )[0],  # grab the raw DM‑Env out of the (env, obs_dim) tuple
+      log_path=f"traj_{env_name}_seed{seed}.csv"
+  )
+  env_factory_no_extra = env_factory
+
   environment, obs_dim = get_env(env_name, config.start_index,
                                  config.end_index, seed, fix_goals = fix_goals)
 
@@ -77,10 +91,19 @@ def get_program(params):
       repr_norm=config.repr_norm, twin_q=config.twin_q,
       use_image_obs=config.use_image_obs,
       hidden_layer_sizes=config.hidden_layer_sizes)
-    
-  env_factory_fixed_goals = lambda seed: contrastive_utils.make_environment(  # pylint: disable=g-long-lambda
-      env_name, config.start_index, config.end_index, seed, fixed_start_end = fixed_goal_dict[env_name])
-  env_factory_no_extra_fixed_goals = lambda seed: env_factory_fixed_goals(seed)[0]  # Remove obs_dim.
+
+
+  env_factory_fixed_goals = lambda seed: TrajectoryLoggerWrapper(
+    make_env_fn(
+        env_name,
+        config.start_index,
+        config.end_index,
+        seed,
+        fixed_goal_dict[env_name]
+    )[0],
+    log_path=f"traj_{env_name}_seed{seed}_fixed.csv"
+  )
+  env_factory_no_extra_fixed_goals = env_factory_fixed_goals
     
   agent = contrastive.DistributedContrastive(
       seed=seed,
