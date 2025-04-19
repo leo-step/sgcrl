@@ -113,21 +113,19 @@ plt.imshow(
 )
 
 # --- 3) overlay your trajectories in the same coordinate frame  ---
-for pathfile in glob.glob(f"traj_point_{map_name}_seed*.csv"):
+for pathfile in glob.glob("traj_point_Impossible_seed3569011572_fixed.csv"): # glob.glob(f"traj_point_{map_name}_seed*.csv"):
     data = np.genfromtxt(pathfile, delimiter=",", names=True)
     xs, ys = data["x"], data["y"]
-    x_rot =  ys
-    y_rot =  W - xs
-    y_flip = W - y_rot
-    plt.plot(x_rot, y_flip, alpha=0.5, linewidth=1)
+    steps_per_episode = 51
+    for i in range(0, len(xs), steps_per_episode):
+        xs_episode = xs[i:i+steps_per_episode]
+        ys_episode = ys[i:i+steps_per_episode]
+        x_rot =  ys_episode
+        y_rot =  W - xs_episode
+        y_flip = W - y_rot
+        plt.plot(x_rot, y_flip, alpha=1, linewidth=1, color='#6495ED')
 
 plt.title("All Episode Trajectories (Overlayed)")
 plt.xlabel("X"); plt.ylabel("Y")
 plt.xlim(0, walls.shape[1]); plt.ylim(0, walls.shape[0])
 plt.show()
-
-
-
-
-
-
