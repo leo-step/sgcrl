@@ -86,9 +86,25 @@ WALLS = {
                   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]),
 }
 
+from argparse import ArgumentParser
+import sys
+
 import glob
 import numpy as np
 import matplotlib.pyplot as plt
+
+def handle_args():
+    """
+    Handle and return arguments using ArgumentParser.
+    """
+    parser = ArgumentParser(prog=sys.argv[0],
+                            description="Generate figures from trajectory csvs",
+                            allow_abbrev=False)
+    parser.add_argument("filename", default="", help="path for trajectory csv file")
+    args = vars(parser.parse_args())
+    return args["filename"]
+
+path = handle_args()
 
 map_name = "Impossible"
 walls   = WALLS[map_name]
@@ -113,7 +129,7 @@ plt.imshow(
 )
 
 # --- 3) overlay your trajectories in the same coordinate frame  ---
-for pathfile in glob.glob("traj_point_Impossible_seed3569011572_fixed.csv"): # glob.glob(f"traj_point_{map_name}_seed*.csv"):
+for pathfile in glob.glob(path): # glob.glob(f"traj_point_{map_name}_seed*.csv"):
     data = np.genfromtxt(pathfile, delimiter=",", names=True)
     xs, ys = data["x"], data["y"]
     steps_per_episode = 51
