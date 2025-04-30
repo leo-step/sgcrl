@@ -1,0 +1,2 @@
+actor_episodes,actor_loss,actor_steps,base_loss,binary_accuracy,categorical_accuracy,critic_loss,entropy_mean,evaluator_episodes,evaluator_steps,learner_steps,learner_walltime,logits_neg,logits_pos,logsumexp,steps_per_second
+252,0.3826649,12600,0.3826649,0.8178935,0.0087890625,5.574668,-4.346359,99,4950,1,0,-0.86228204,-0.38760713,25.116634,0.0

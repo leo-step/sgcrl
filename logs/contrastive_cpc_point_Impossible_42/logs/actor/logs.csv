@@ -1,0 +1,2 @@
+actor_episodes,actor_steps,delta_dist,delta_dist_10,delta_dist_100,delta_dist_1000,episode_length,episode_return,evaluator_episodes,evaluator_steps,final_dist,final_dist_10,final_dist_100,final_dist_1000,init_dist,init_dist_10,init_dist_100,init_dist_1000,min_dist,min_dist_10,min_dist_100,min_dist_1000,steps_per_second,success,success_1000
+1,50,2.9651232,0.0,0.0,0.0,50,0.0,1,50,8.348585,11.313708,11.313708,11.313708,11.313708,11.313708,11.313708,11.313708,5.5886974,11.313708,11.313708,11.313708,2.563194261950785,0.0,nan
