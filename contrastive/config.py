@@ -73,6 +73,11 @@ class ContrastiveConfig:
   start_index: int = 0
   end_index: int = -1
 
+  # new params
+  repulsion_coeff: float = 0.0
+  repulsion_sigma: float = 1.0
+
+
 
 def target_entropy_from_env_spec(
     spec,

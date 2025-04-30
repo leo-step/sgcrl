@@ -213,52 +213,94 @@ class ContrastiveLearner(acme.Learner):
       return loss, metrics
 
     def actor_loss(policy_params,
-                   q_params,
-                   alpha,
-                   transitions,
-                   key,
-                   ):
+               q_params,
+               alpha,
+               transitions,
+               key):
+      """
+      SAC‐style actor loss + optional batch‐wise repulsion on trajectory reps.
+
+      Args:
+        policy_params: pytree of actor network weights
+        q_params: pytree of critic network weights
+        alpha: entropy weight
+        transitions: batch with .observation shape [B, obs_dim+goal_dim]
+        key: PRNGKey
+
+      Uses globals:
+        config.obs_dim, config.random_goals, config.use_action_entropy,
+        config.repulsion_coeff, config.repulsion_sigma
+      Returns:
+        loss scalar, metrics dict
+      """
       obs = transitions.observation
-
       state = obs[:, :config.obs_dim]
-      goal = obs[:, config.obs_dim:]
+      goal  = obs[:, config.obs_dim:]
 
+      # optionally shuffle goals
       if config.random_goals == 0.0:
-        new_state = state
-        new_goal = goal
+          new_state, new_goal = state, goal
       elif config.random_goals == 0.5:
-        new_state = jnp.concatenate([state, state], axis=0)
-        new_goal = jnp.concatenate([goal, jnp.roll(goal, 1, axis=0)], axis=0)
+          new_state = jnp.concatenate([state, state], axis=0)
+          new_goal  = jnp.concatenate([goal, jnp.roll(goal, 1, axis=0)], axis=0)
       else:
-        assert config.random_goals == 1.0
-        new_state = state
-        new_goal = jnp.roll(goal, 1, axis=0)
+          # config.random_goals == 1.0
+          new_state = state
+          new_goal  = jnp.roll(goal, 1, axis=0)
 
-      new_obs = jnp.concatenate([new_state, new_goal], axis=1) 
+      new_obs = jnp.concatenate([new_state, new_goal], axis=1)
+
+      # sample an action + log_prob
       dist_params = networks.policy_network.apply(policy_params, new_obs)
-      action = networks.sample(dist_params, key)
-      log_prob = networks.log_prob(dist_params, action)
+      action, subkey = networks.sample(dist_params, key), key
+      log_prob    = networks.log_prob(dist_params, action)
 
+      # get Q and reprs
       q_action, sa_repr, sf_repr = networks.q_network.apply(q_params, new_obs, action)
+      # twin-Q reduction
+      if q_action.ndim == 3 and q_action.shape[-1] == 2:
+          q_action = jnp.min(q_action, axis=-1)
 
-      if len(q_action.shape) == 3:  # twin q trick
-        assert q_action.shape[2] == 2
-        q_action = jnp.min(q_action, axis=-1)
-
-      actor_loss = -jnp.diag(q_action) # negative -(Q): maximize Q
-
-      # action entropy loss
-      approx_entropy = -log_prob
-
+      # base actor loss = −Q + (entropy term)
+      # we want a vector so we can average after adding repulsion
+      adv = -jnp.diag(q_action)      # [N] where N = new_obs.shape[0]
       if config.use_action_entropy:
-        actor_loss -= alpha * approx_entropy # negative -(-log prob): maximize entropy
+          adv = adv - alpha * (-log_prob)
 
+      mean_base_loss = jnp.mean(adv)
+
+      # build metrics
       metrics = {
-          'entropy_mean': jnp.mean(approx_entropy),
+          'entropy_mean': jnp.mean(-log_prob),
+          'base_loss':   mean_base_loss,
       }
 
-      
-      return jnp.mean(actor_loss), metrics
+      # === Repulsion penalty ===
+      repulsion_coeff = getattr(config, 'repulsion_coeff', 0.0)
+      if repulsion_coeff > 0.0:
+          # use the “future state” rep sf_repr ([N, repr_dim])
+          reps = sf_repr
+          N = reps.shape[0]
+
+          # pairwise squared distances
+          diffs    = reps[:, None, :] - reps[None, :, :]
+          sq_dists = jnp.sum(diffs**2, axis=-1)
+
+          # RBF kernel => large when two reps are close
+          sigma = config.repulsion_sigma
+          rep_mat = jnp.exp(-sq_dists / (2 * sigma**2))
+
+          # zero out self‐terms and average
+          rep_sum = (jnp.sum(rep_mat) - jnp.trace(rep_mat)) / (N * (N - 1))
+
+          rep_loss = repulsion_coeff * rep_sum
+
+          metrics['repulsion_term'] = rep_loss
+          total_loss = mean_base_loss + rep_loss
+      else:
+          total_loss = mean_base_loss
+
+      return total_loss, metrics
 
     alpha_grad = jax.value_and_grad(alpha_loss)
     critic_grad = jax.value_and_grad(critic_loss, has_aux=True)
