@@ -129,7 +129,7 @@ plt.imshow(
 )
 
 # --- 3) overlay your trajectories in the same coordinate frame  ---
-for pathfile in glob.glob(path): # glob.glob(f"traj_point_{map_name}_seed*.csv"):
+for pathfile in glob.glob(f"traj_point_{map_name}_seed*.csv"):# glob.glob(path): # glob.glob(f"traj_point_{map_name}_seed*.csv"):
     data = np.genfromtxt(pathfile, delimiter=",", names=True)
     xs, ys = data["x"], data["y"]
     steps_per_episode = 51
