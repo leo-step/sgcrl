@@ -74,7 +74,7 @@ class ContrastiveConfig:
   end_index: int = -1
 
   # new params
-  repulsion_coeff: float = 0.0
+  repulsion_coeff: float = 1.0
   repulsion_sigma: float = 1.0
 
 
